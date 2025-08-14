@@ -29,6 +29,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/types-adhesion/{id}/edit', [App\Http\Controllers\TypeAdhesionController::class, 'edit'])->name('types-adhesion.edit');
     Route::put('/types-adhesion/{id}', [App\Http\Controllers\TypeAdhesionController::class, 'update'])->name('types-adhesion.update');
     Route::delete('/types-adhesion/{id}', [App\Http\Controllers\TypeAdhesionController::class, 'destroy'])->name('types-adhesion.destroy');
+    Route::get('/reports', [App\Http\Controllers\ReportController::class, 'index'])->name('reports');
+
 });
 
 require __DIR__ . '/settings.php';

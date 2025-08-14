@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Adherents;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
+use Exception;
 
 class AdherentController extends Controller
 {
@@ -14,7 +16,7 @@ class AdherentController extends Controller
     public function index()
     {
         $adherents = Adherents::all();
-        return Inertia::render('adherents/index',compact('adherents'));
+        return Inertia::render('adherents/index', compact('adherents'));
     }
 
     /**
@@ -22,7 +24,7 @@ class AdherentController extends Controller
      */
     public function create()
     {
-        return Inertia::render('adherents/create', );
+        return Inertia::render('adherents/create');
     }
 
     /**
@@ -30,7 +32,7 @@ class AdherentController extends Controller
      */
     public function store(Request $request)
     {
-       $validate = $request->validate([
+        $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'prenom' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:adherents,email',
@@ -38,8 +40,8 @@ class AdherentController extends Controller
             'telephone' => 'required|string|max:15',
         ]);
 
-        Adherents::create($validate);
-        return redirect()->route('adherents.index')->with('success', 'Adherent created successfully.');   
+        Adherents::create($validated);
+        return redirect()->route('adherents.index')->with('success', 'Adhérent créé avec succès.');   
     }
 
     /**
@@ -66,7 +68,7 @@ class AdherentController extends Controller
     {
         $adherent = Adherents::findOrFail($id);
 
-        $validate = $request->validate([
+        $validated = $request->validate([
             'nom' => 'required|string|max:255',
             'prenom' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:adherents,email,' . $adherent->id,
@@ -74,8 +76,8 @@ class AdherentController extends Controller
             'telephone' => 'required|string|max:15',
         ]);
 
-        $adherent->update($validate);
-        return redirect()->route('adherents.index')->with('success', 'Adherent updated successfully.');
+        $adherent->update($validated);
+        return redirect()->route('adherents.index')->with('success', 'Adhérent mis à jour avec succès.');
     }
 
     /**
@@ -83,8 +85,31 @@ class AdherentController extends Controller
      */
     public function destroy(string $id)
     {
-        $adherent = Adherents::findOrFail($id);
-        $adherent->delete();
-        return redirect()->route('adherents.index')->with('success', 'Adherent deleted successfully.');
+        try {
+            DB::beginTransaction();
+            
+            $adherent = Adherents::findOrFail($id);
+            
+            // Check if adherent has adhesions
+            $adhesionsCount = $adherent->adhesions()->count();
+            
+            // Log for debugging
+            \Log::info("Deleting adherent {$id} with {$adhesionsCount} adhesions");
+            
+            // Delete the adherent (should cascade delete adhesions if properly configured)
+            $adherent->delete();
+            
+            DB::commit();
+            
+            return redirect()->route('adherents.index')->with('success', 'Adhérent supprimé avec succès.');
+            
+        } catch (Exception $e) {
+            DB::rollback();
+            
+            // Log the error for debugging
+            \Log::error("Error deleting adherent {$id}: " . $e->getMessage());
+            
+            return redirect()->route('adherents.index')->with('error', 'Erreur lors de la suppression: ' . $e->getMessage());
+        }
     }
 }

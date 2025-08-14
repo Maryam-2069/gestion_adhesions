@@ -43,9 +43,11 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href="/dashboard" prefetch>
-                                <AppLogo />
-                            </Link>
+<div className="flex justify-center">
+  <Link href="/dashboard" prefetch>
+    <img src="/cmc.png" alt="Logo" className="h-16 w-16 object-contain" />
+  </Link>
+</div>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

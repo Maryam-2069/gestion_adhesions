@@ -9,7 +9,7 @@ class TypeAdhesion extends Model
      protected $fillable = ['nom', 'duree', 'prix'];
 
      public function adhesions()
-{
-    return $this->hasMany(Adhesion::class);
-}
+        {
+            return $this->hasMany(Adhesion::class);
+        }
 }

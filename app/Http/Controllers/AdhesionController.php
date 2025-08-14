@@ -10,87 +10,92 @@ use Inertia\Inertia;
 
 class AdhesionController extends Controller
 {
-public function index()
-{
-    $adhesions = Adhesion::with(['typeAdhesion', 'adherent'])->get()->map(function ($adhesion) {
-        return [
-            'id' => $adhesion->id,
-            'type' => optional($adhesion->typeAdhesion)->nom ?? '—',
-            'montant' => optional($adhesion->typeAdhesion)->prix ?? 0,
-            'date_debut' => $adhesion->date_debut,
-            'date_fin' => $adhesion->date_fin,
-            'adherent_nom' => trim(optional($adhesion->adherent)->nom . ' - ' . optional($adhesion->adherent)->prenom) ?: '—',
-        ];
-    });
+    public function index()
+    {
+        $adhesions = Adhesion::with(['typeAdhesion', 'adherent'])->get()->map(function ($adhesion) {
+            return [
+                'id' => $adhesion->id,
+                'type' => optional($adhesion->typeAdhesion)->nom ?? '—',
+                'montant' => optional($adhesion->typeAdhesion)->prix ?? 0,
+                'date_debut' => $adhesion->date_debut,
+                'date_fin' => $adhesion->date_fin,
+                'adherent_nom' => trim(optional($adhesion->adherent)->nom . ' - ' . optional($adhesion->adherent)->prenom) ?: '—',
+            ];
+        });
 
-    return inertia('adhesions/index', compact('adhesions'));
-}
- public function create()
-{
-    $adherents = Adherents::all();
-    $typeAdhesions = TypeAdhesion::all(); 
+        return inertia('adhesions/index', compact('adhesions'));
+    }
 
-    return Inertia::render('adhesions/create', [
-        'adherents' => $adherents,
-        'typeAdhesions' => $typeAdhesions,
-    ]);
-}
+    public function create()
+    {
+        $adherents = Adherents::all(['id', 'nom', 'prenom']);
+        $typeAdhesions = TypeAdhesion::all(['id', 'nom', 'duree', 'prix']); 
+
+        return Inertia::render('adhesions/create', [
+            'adherents' => $adherents,
+            'typeAdhesions' => $typeAdhesions,
+        ]);
+    }
 
     public function store(Request $request)
     {
-        $validate = $request->validate([
+        $validated = $request->validate([
             'adherents_id' => 'required|exists:adherents,id',
             'type_adhesion_id' => 'required|exists:type_adhesions,id',
             'date_debut' => 'required|date',
             'date_fin' => 'required|date|after_or_equal:date_debut',
         ]);
 
-        Adhesion::create($validate);
-        return redirect()->route('adhesions.index')->with('success', 'Adhesion créée avec succès.');
+        Adhesion::create($validated);
+        
+        return redirect()->route('adhesions.index')->with('success', 'Adhésion créée avec succès.');
     }
 
-public function edit(string $id)
-{
-    $adhesion = Adhesion::with('typeAdhesion', 'adherent')->findOrFail($id);
+    public function edit(string $id)
+    {
+        $adhesion = Adhesion::with(['typeAdhesion', 'adherent'])->findOrFail($id);
 
-    $formattedAdhesion = [
-        'id' => $adhesion->id,
-        'type_adhesion_id' => $adhesion->type_adhesion_id,
-        'adherents_id' => $adhesion->adherents_id,
-        'date_debut' => $adhesion->date_debut,
-        'date_fin' => $adhesion->date_fin,
-    ];
+        // Format the adhesion data for the form
+        $formattedAdhesion = [
+            'id' => $adhesion->id,
+            'type_adhesion_id' => $adhesion->type_adhesion_id,
+            'adherents_id' => $adhesion->adherents_id,
+            'date_debut' => $adhesion->date_debut_raw, // Get raw database value for form input
+            'date_fin' => $adhesion->date_fin_raw, // Get raw database value for form input
+        ];
 
-    $adherents = Adherents::all();
-    $types = TypeAdhesion::all();
+        // Get all options for dropdowns
+        $adherents = Adherents::all(['id', 'nom', 'prenom']);
+        $typeAdhesions = TypeAdhesion::all(['id', 'nom', 'duree', 'prix']);
 
-    return Inertia::render('adhesions/edit', [
-        'adhesion' => $formattedAdhesion,
-        'adherents' => $adherents,
-        'types' => $types,
-    ]);
-}
-
+        return Inertia::render('adhesions/edit', [
+            'adhesion' => $formattedAdhesion,
+            'adherents' => $adherents,
+            'typeAdhesions' => $typeAdhesions, // Make sure this matches your frontend
+        ]);
+    }
 
     public function update(Request $request, string $id)
     {
         $adhesion = Adhesion::findOrFail($id);
 
-        $validate = $request->validate([
+        $validated = $request->validate([
             'adherents_id' => 'required|exists:adherents,id',
             'type_adhesion_id' => 'required|exists:type_adhesions,id',
             'date_debut' => 'required|date',
             'date_fin' => 'required|date|after_or_equal:date_debut',
         ]);
 
-        $adhesion->update($validate);
-        return redirect()->route('adhesions.index')->with('success', 'Adhesion mise à jour avec succès.');
+        $adhesion->update($validated);
+        
+        return redirect()->route('adhesions.index')->with('success', 'Adhésion mise à jour avec succès.');
     }
 
     public function destroy(string $id)
     {
         $adhesion = Adhesion::findOrFail($id);
         $adhesion->delete();
-        return redirect()->route('adhesions.index')->with('success', 'Adhesion supprimée avec succès.');
+        
+        return redirect()->route('adhesions.index')->with('success', 'Adhésion supprimée avec succès.');
     }
 }
